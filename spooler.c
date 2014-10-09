@@ -1,48 +1,54 @@
-#include <stdio.h>
 #include <string.h>
+#include <pthread.h>
 #include <semaphore.h>
 #include "spooler.h"
 
-int main(int argc, char argv[])
+void producer() {
+
+}
+
+void consumer() {
+
+}
+
+int main(int argc, char *argv[])
 {
   int ret;
-#if 0
   // get the option values
-  if (argc != 3) {
-    
+  if (argc != 4) {
+    printf("usage: spooler -c[clients] -p[printers] -b[buffer size]\n");
+    exit(1);
   }
+  // for now, c is 0, p is 1, size is 2
+  #if 0
   int i = 0;
   for (; i < argc; i++) {
-    if (
+    if (strstr(argv[i], 
   }
-#endif
-    buffsize = 5;  
-  int slots[buffsize];
-  CircularBuffer buff;
-  buff.length = 0;
-  buff.head = 1;
-  buff.tail = 0;
+  #endif
+  // remember error checking
+  clients = atoi(argv[1]);
+  printers = atoi(argv[2]);
+  buffsize = atoi(argv[3]);
 
-  printf("length: %d\n", buff.length);
-  enqueue(&buff, slots, 3);
-  enqueue(&buff, slots, 7);
-  enqueue(&buff, slots, 4);
-  enqueue(&buff, slots, 9);
-  enqueue(&buff, slots, 2);
+  // create the circular buffer
+  //int slots[buffsize];
+  CircularBuffer buff = newCircularBuffer();
+
+#if 0
+  pthread_t client[clients];
+  pthread_t printer[printers];
+
+  // Create the clients
   int i = 0;
-#if 1
-  for (; i < 5; i++) {
-       printf("dequeuing\n");
-       dequeue(&buff, slots, &ret);
+  for (; i < clients; i++) {
+    pthread_create(client[i], NULL, producer(), 
   }
-#endif
-#if 1
-  for (i=0; i <5; i++) {
-    printf("buff[%d]: %d\n", i, slots[i]);
+
+  // Create the printers
+  i = 0;
+  for (; i < printers; i++) {
+
   }
-  enqueue(&buff, slots, 16);
-  for (i=0; i <5; i++) {
-    printf("buff[%d]: %d\n", i, slots[i]);
-  }
-#endif
+  #endif
 }
