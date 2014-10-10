@@ -1,9 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <errno.h>
 
 int buffsize;
 int clients;
 int printers;
+
+#define err_exit(no, msg) \
+    errno = no; perror(msg); exit(EXIT_FAILURE);
 
 typedef struct {
   int *slots; // the actual buffer

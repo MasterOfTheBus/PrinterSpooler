@@ -1,25 +1,29 @@
 #include <string.h>
 #include <pthread.h>
 #include <semaphore.h>
+#include <errno.h>
 #include "spooler.h"
 
-void producer() {
-
+static void *producer(void *arg) {
+    CircularBuffer *cb = arg;
+    printf("Dinner's ready!\n");
 }
 
-void consumer() {
-
+static void *consumer(void *arg) {
+    CircularBuffer *cb = arg;
+    printf("It's sooooo yummy!\n");
 }
 
 int main(int argc, char *argv[])
 {
-  int ret;
+  void *ret;
+  int s;
   // get the option values
   if (argc != 4) {
     printf("usage: spooler -c[clients] -p[printers] -b[buffer size]\n");
     exit(1);
   }
-  // for now, c is 0, p is 1, size is 2
+  // for now, c is 1, p is 2, size is 3
   #if 0
   int i = 0;
   for (; i < argc; i++) {
@@ -32,23 +36,49 @@ int main(int argc, char *argv[])
   buffsize = atoi(argv[3]);
 
   // create the circular buffer
-  //int slots[buffsize];
   CircularBuffer buff = newCircularBuffer();
 
-#if 0
   pthread_t client[clients];
   pthread_t printer[printers];
 
   // Create the clients
   int i = 0;
   for (; i < clients; i++) {
-    pthread_create(client[i], NULL, producer(), 
+    s = pthread_create(&client[i], NULL, producer, &buff);
+    if (s != 0) {
+      err_exit(s, "pthread_create");
+    }
   }
 
   // Create the printers
   i = 0;
   for (; i < printers; i++) {
-
+    s = pthread_create(&printer[i], NULL, consumer, &buff);
+    if (s != 0) {
+      err_exit(s, "pthread_create");
+    }
   }
-  #endif
+
+  i = 0;
+  for (; i < clients; i++) {
+    s = pthread_join(client[i], &ret);
+    if (s != 0) {
+      err_exit(s, "pthread_join");
+    }
+    printf("Joined with thread %d, returning\n", i);
+  }
+
+  i = 0;
+  for (; i < printers; i++) {
+    s = pthread_join(printer[i], &ret);
+    if (s != 0) {
+      err_exit(s, "pthread_join");
+    }
+    printf("Joined with thread %d, returning\n", i);
+  }
+
+  //free(ret);
+  free(buff.slots);
+
+  exit(0);
 }
