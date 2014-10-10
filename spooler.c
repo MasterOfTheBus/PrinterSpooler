@@ -1,18 +1,6 @@
 #include <string.h>
 #include <pthread.h>
-#include <semaphore.h>
-#include <errno.h>
 #include "spooler.h"
-
-static void *producer(void *arg) {
-    CircularBuffer *cb = arg;
-    printf("Dinner's ready!\n");
-}
-
-static void *consumer(void *arg) {
-    CircularBuffer *cb = arg;
-    printf("It's sooooo yummy!\n");
-}
 
 int main(int argc, char *argv[])
 {
@@ -35,6 +23,10 @@ int main(int argc, char *argv[])
   printers = atoi(argv[2]);
   buffsize = atoi(argv[3]);
 
+  sem_init(&mutex, 0, 1);
+  sem_init(&full, 0, 0);
+  sem_init(&empty, 0, buffsize);
+
   // create the circular buffer
   CircularBuffer buff = newCircularBuffer();
 
@@ -44,7 +36,10 @@ int main(int argc, char *argv[])
   // Create the clients
   int i = 0;
   for (; i < clients; i++) {
-    s = pthread_create(&client[i], NULL, producer, &buff);
+    targs thread_args;
+    thread_args.cb = &buff;
+    thread_args.tid = i;
+    s = pthread_create(&client[i], NULL, producer, &thread_args);
     if (s != 0) {
       err_exit(s, "pthread_create");
     }
@@ -53,7 +48,10 @@ int main(int argc, char *argv[])
   // Create the printers
   i = 0;
   for (; i < printers; i++) {
-    s = pthread_create(&printer[i], NULL, consumer, &buff);
+    targs thread_args;
+    thread_args.cb = &buff;
+    thread_args.tid = i;
+    s = pthread_create(&printer[i], NULL, consumer, &thread_args);
     if (s != 0) {
       err_exit(s, "pthread_create");
     }
