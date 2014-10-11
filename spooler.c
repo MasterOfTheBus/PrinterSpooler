@@ -68,10 +68,10 @@ int main(int argc, char *argv[])
   // Create the clients
   i = 0;
   for (; i < clients; i++) {
-    targs thread_args;
-    thread_args.cb = &buff;
-    thread_args.tid = i;
-    s = pthread_create(&client[i], NULL, producer, &thread_args);
+    targs *thread_args = malloc(sizeof(targs));
+    thread_args->cb = &buff;
+    thread_args->tid = i;
+    s = pthread_create(&client[i], NULL, producer, thread_args);
     if (s != 0) {
       err_exit(s, "pthread_create");
     }
@@ -80,10 +80,10 @@ int main(int argc, char *argv[])
   // Create the printers
   i = 0;
   for (; i < printers; i++) {
-    targs thread_args;
-    thread_args.cb = &buff;
-    thread_args.tid = i;
-    s = pthread_create(&printer[i], NULL, consumer, &thread_args);
+    targs *thread_args = malloc(sizeof(targs));
+    thread_args->cb = &buff;
+    thread_args->tid = i;
+    s = pthread_create(&printer[i], NULL, consumer, thread_args);
     if (s != 0) {
       err_exit(s, "pthread_create");
     }

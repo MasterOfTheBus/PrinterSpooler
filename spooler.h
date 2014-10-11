@@ -71,8 +71,7 @@ static void *producer(void *arg) {
     int tid = (int)threadArgs->tid;
     int pages;
     srand (time(NULL));
-
-    printf("producer id: %d\n", tid);
+    free(arg);
 
     /*
      * The count here could be replace with while(1) if the program is meant
@@ -106,8 +105,7 @@ static void *consumer(void *arg) {
     targs *threadArgs = (targs*)arg;
     CircularBuffer *cb = threadArgs->cb;
     int tid = (int)threadArgs->tid;
-
-    printf("consumer id: %d\n", tid);
+    free (arg);
 
     while (1) {
       sem_wait(&mutex);
