@@ -33,10 +33,7 @@ CircularBuffer newCircularBuffer() {
   return cb;
 }
 
-int enqueue(CircularBuffer *cb, int num) {
-  if (cb->length >= buffsize) {
-	return (-1);
-  }
+void enqueue(CircularBuffer *cb, int num) {
   if (cb->tail == buffsize-1) {
 	cb->tail = 0;
   } else {
@@ -44,16 +41,12 @@ int enqueue(CircularBuffer *cb, int num) {
   }
   cb->slots[cb->tail] = num;
   cb->length++;
-  return (0);
 }
 
-int dequeue(CircularBuffer *cb, int *ret) {
-  int dq = 0;
-  if (cb->length <= 0) {
-    *ret = -1;
-	return (-1);
-  }
-  dq = cb->head;
+// don't check for overflow/underflow in the queue?
+int dequeue(CircularBuffer *cb) {
+  int dq;
+  dq = cb->slots[cb->head];
   cb->slots[cb->head] = -1;
   if (cb->head == buffsize-1) {
     cb->head = 0;
@@ -61,7 +54,6 @@ int dequeue(CircularBuffer *cb, int *ret) {
     cb->head++;
   }
   cb->length--;
-  *ret = 0;
   return (dq);
 }
 
@@ -89,19 +81,25 @@ static void *producer(void *arg) {
 
     int count = 0;
     while (count < 5) {
-	pages = rand() % 10 + 1;
-	
-	sem_wait(&empty);
-	sem_wait(&mutex);
-	int tail = cb->tail;
-	enqueue(cb, pages);
-	printf("Client %d has %d pages to print, putting request in Buffer[%d]\n",
-		cid, pages, tail);
-	sem_post(&mutex);
-	sem_post(&full);
+      pages = rand() % 10 + 1;
 
-	count++;
-	sleep(5); // sleep a certain time before making a request
+      sem_wait(&mutex);
+      while (cb->length == buffsize) {
+	    printf("Client %d has %d pages to print, buffer full, sleeping\n", cid, pages);
+        sem_post(&mutex);
+	    sem_wait(&empty);
+	    printf("Client %d waking up, putting request in Buffer[%d]\n", cid, cb->tail);
+        sem_wait(&mutex);
+      }
+      int tail = cb->tail;
+      enqueue(cb, pages);
+      printf("Client %d has %d pages to print, putting request in Buffer[%d]\n",
+             cid, pages, tail);
+      sem_post(&mutex);
+      sem_post(&full);
+
+      count++;
+      sleep(5); // sleep a certain time before making a request
     }
 }
 
@@ -109,17 +107,26 @@ static void *consumer(void *arg) {
     targs *threadArgs = arg;
     CircularBuffer *cb = threadArgs->cb;
     int cid = threadArgs->tid;
-    int ret;
 
     while (1) {
-	sem_wait(&full);
-	sem_wait(&mutex);
-	int head = cb->head;
-	int pages = dequeue(cb, &ret);
-	printf("Printer %d printing %d pages from Buffer[%d]\n", cid, pages, head);
-	sleep(pages);
-	sem_post(&mutex);
-	sem_post(&empty);
+      sem_wait(&mutex);
+      while (cb->length == 0) {
+	    printf("No requests in buffer, Printer %d going to sleep\n", cid);
+        sem_post(&mutex);
+	    sem_wait(&full);
+        sem_wait(&mutex);
+      }
+      int head = cb->head;
+      int pages = dequeue(cb);
+      if (pages < 0) {
+        printf("Error: pages to print less than 0\n");
+        exit(1);
+      }
+      printf("Printer %d printing %d pages from Buffer[%d]\n", cid, pages, head);
+      sleep(pages);
+      printf("Printer %d finished printing %d pages from Buffer[%d]\n", cid, pages, head);
+      sem_post(&mutex);
+      sem_post(&empty);
     }
 }
 

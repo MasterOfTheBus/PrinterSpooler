@@ -63,16 +63,20 @@ int main(int argc, char *argv[])
     if (s != 0) {
       err_exit(s, "pthread_join");
     }
-    printf("Joined with thread %d, returning\n", i);
+    printf("Joined with client %d, returning\n", i);
   }
 
   i = 0;
   for (; i < printers; i++) {
+    s = pthread_cancel(printer[i]);
+    if (s != 0) {
+      err_exit(s, "pthread_cancel");
+    }
     s = pthread_join(printer[i], &ret);
     if (s != 0) {
       err_exit(s, "pthread_join");
     }
-    printf("Joined with thread %d, returning\n", i);
+    printf("Joined with printer %d, returning\n", i);
   }
 
   //free(ret);
