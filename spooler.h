@@ -4,6 +4,9 @@
 #include <semaphore.h>
 #include <unistd.h>
 
+#define TIMEOUT 5
+#define NUM_EXECUTION 5
+
 int buffsize;
 int clients;
 int printers;
@@ -12,13 +15,12 @@ sem_t mutex;
 sem_t full;
 sem_t empty;
 
-#define err_exit(no, msg) \
-    errno = no; perror(msg); exit(EXIT_FAILURE);
+#define err_exit(no, msg) errno = no; perror(msg); exit(EXIT_FAILURE);
 
 //============== Buffer Declaration =================
 
 typedef struct {
-  int *slots; // the actual buffer
+  int *slots;
   int length;
   int head;
   int tail;
@@ -27,7 +29,7 @@ typedef struct {
 CircularBuffer newCircularBuffer() {
   CircularBuffer cb;
   cb.length = 0;
-  cb.head = 1;
+  cb.head = (buffsize == 1) ? 0 : 1;
   cb.tail = 0;
   cb.slots = (int*)malloc(sizeof(int) * buffsize);
   return cb;
@@ -43,7 +45,6 @@ void enqueue(CircularBuffer *cb, int num) {
   cb->length++;
 }
 
-// don't check for overflow/underflow in the queue?
 int dequeue(CircularBuffer *cb) {
   int dq;
   dq = cb->slots[cb->head];
@@ -55,14 +56,6 @@ int dequeue(CircularBuffer *cb) {
   }
   cb->length--;
   return (dq);
-}
-
-int head(CircularBuffer *cb, int *ret) {
-  if (cb->length <= 0) {
-    *ret = -1;
-    return (-1);
-  }
-  return cb->slots[cb->head];
 }
 
 //================== End Buffer Declaration ==============
@@ -79,8 +72,12 @@ static void *producer(void *arg) {
     int pages;
     srand (time(NULL));
 
+    /*
+     * The count here could be replace with while(1) if the program is meant
+     * to infinitely loop
+     */
     int count = 0;
-    while (count < 5) {
+    while (count < NUM_EXECUTION) {
       pages = rand() % 10 + 1;
 
       sem_wait(&mutex);
@@ -99,7 +96,7 @@ static void *producer(void *arg) {
       sem_post(&full);
 
       count++;
-      sleep(5); // sleep a certain time before making a request
+      sleep(TIMEOUT);
     }
 }
 
@@ -120,7 +117,8 @@ static void *consumer(void *arg) {
       int pages = dequeue(cb);
       if (pages < 0) {
         printf("Error: pages to print less than 0\n");
-        exit(1);
+        continue; // continue or exit?
+        //exit(1);
       }
       printf("Printer %d printing %d pages from Buffer[%d]\n", cid, pages, head);
       sleep(pages);

@@ -39,20 +39,18 @@ int main(int argc, char *argv[])
     }
   }
 
-  if (clients < 0) {
+  if (clients <= 0) {
     printf("Number of clients must be greater than 0\n");
     exit(1);
   }
-  if (printers < 0) {
+  if (printers <= 0) {
     printf("Number of printers must be greater than 0\n");
     exit(1);
   }
-  if (buffsize < 0) {
+  if (buffsize <= 0) {
     printf("Buffer size must be greater than 0\n");
     exit(1);
   }
-
-  printf("Buffer size: %d\n", buffsize);
 
   void *ret;
   int s;
