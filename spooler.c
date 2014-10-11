@@ -4,24 +4,58 @@
 
 int main(int argc, char *argv[])
 {
-  void *ret;
-  int s;
   // get the option values
   if (argc != 4) {
     printf("usage: spooler -c[clients] -p[printers] -b[buffer size]\n");
     exit(1);
   }
-  // for now, c is 1, p is 2, size is 3
-  #if 0
-  int i = 0;
+
+  int i = 1;
   for (; i < argc; i++) {
-    if (strstr(argv[i], 
+    if (strstr(argv[i], "-c") != NULL) {
+      if (isdigit(argv[i][2])) {
+        clients = atoi(&argv[i][2]);
+      } else {
+        printf("Number of clients must be an integer value\n");
+        exit(1);
+      }
+    } else if (strstr(argv[i], "-p") != NULL) {
+      if (isdigit(argv[i][2])) {
+        printers = atoi(&argv[i][2]);
+      } else {
+        printf("Number of printers must be an integer value\n");
+        exit(1);
+      }
+    } else if (strstr(argv[i], "-b") != NULL) {
+      if (isdigit(argv[i][2])) {
+        buffsize = atoi(&argv[i][2]);
+      } else {
+        printf("Buffer size must be an integer value\n");
+        exit(1);
+      }
+    } else {
+      printf("usage: spooler -c[clients] -p[printers] -b[buffer size]\n");
+      exit(1);
+    }
   }
-  #endif
-  // remember error checking
-  clients = atoi(argv[1]);
-  printers = atoi(argv[2]);
-  buffsize = atoi(argv[3]);
+
+  if (clients < 0) {
+    printf("Number of clients must be greater than 0\n");
+    exit(1);
+  }
+  if (printers < 0) {
+    printf("Number of printers must be greater than 0\n");
+    exit(1);
+  }
+  if (buffsize < 0) {
+    printf("Buffer size must be greater than 0\n");
+    exit(1);
+  }
+
+  printf("Buffer size: %d\n", buffsize);
+
+  void *ret;
+  int s;
 
   sem_init(&mutex, 0, 1);
   sem_init(&full, 0, 0);
@@ -34,7 +68,7 @@ int main(int argc, char *argv[])
   pthread_t printer[printers];
 
   // Create the clients
-  int i = 0;
+  i = 0;
   for (; i < clients; i++) {
     targs thread_args;
     thread_args.cb = &buff;
@@ -79,7 +113,6 @@ int main(int argc, char *argv[])
     printf("Joined with printer %d, returning\n", i);
   }
 
-  //free(ret);
   free(buff.slots);
 
   exit(0);
