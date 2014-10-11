@@ -66,11 +66,13 @@ typedef struct {
 } targs;
 
 static void *producer(void *arg) {
-    targs *threadArgs = arg;
+    targs *threadArgs = (targs*)arg;
     CircularBuffer *cb = threadArgs->cb;
-    int cid = threadArgs->tid;
+    int tid = (int)threadArgs->tid;
     int pages;
     srand (time(NULL));
+
+    printf("producer id: %d\n", tid);
 
     /*
      * The count here could be replace with while(1) if the program is meant
@@ -82,16 +84,16 @@ static void *producer(void *arg) {
 
       sem_wait(&mutex);
       while (cb->length == buffsize) {
-	    printf("Client %d has %d pages to print, buffer full, sleeping\n", cid, pages);
+	    printf("Client %d has %d pages to print, buffer full, sleeping\n", tid, pages);
         sem_post(&mutex);
 	    sem_wait(&empty);
-	    printf("Client %d waking up, putting request in Buffer[%d]\n", cid, cb->tail);
+	    printf("Client %d waking up, putting request in Buffer[%d]\n", tid, cb->tail);
         sem_wait(&mutex);
       }
       int tail = cb->tail;
       enqueue(cb, pages);
       printf("Client %d has %d pages to print, putting request in Buffer[%d]\n",
-             cid, pages, tail);
+             tid, pages, tail);
       sem_post(&mutex);
       sem_post(&full);
 
@@ -101,14 +103,16 @@ static void *producer(void *arg) {
 }
 
 static void *consumer(void *arg) {
-    targs *threadArgs = arg;
+    targs *threadArgs = (targs*)arg;
     CircularBuffer *cb = threadArgs->cb;
-    int cid = threadArgs->tid;
+    int tid = (int)threadArgs->tid;
+
+    printf("consumer id: %d\n", tid);
 
     while (1) {
       sem_wait(&mutex);
       while (cb->length == 0) {
-	    printf("No requests in buffer, Printer %d going to sleep\n", cid);
+	    printf("No requests in buffer, Printer %d going to sleep\n", tid);
         sem_post(&mutex);
 	    sem_wait(&full);
         sem_wait(&mutex);
@@ -120,9 +124,9 @@ static void *consumer(void *arg) {
         continue; // continue or exit?
         //exit(1);
       }
-      printf("Printer %d printing %d pages from Buffer[%d]\n", cid, pages, head);
+      printf("Printer %d printing %d pages from Buffer[%d]\n", tid, pages, head);
       sleep(pages);
-      printf("Printer %d finished printing %d pages from Buffer[%d]\n", cid, pages, head);
+      printf("Printer %d finished printing %d pages from Buffer[%d]\n", tid, pages, head);
       sem_post(&mutex);
       sem_post(&empty);
     }
