@@ -81,6 +81,7 @@ static void *producer(void *arg) {
     while (count < NUM_EXECUTION) {
       pages = rand() % 10 + 1;
 
+      sem_trywait(&empty);
       sem_wait(&mutex);
       while (cb->length == buffsize) {
 	    printf("Client %d has %d pages to print, buffer full, sleeping\n", tid, pages);
@@ -89,10 +90,9 @@ static void *producer(void *arg) {
 	    printf("Client %d waking up, putting request in Buffer[%d]\n", tid, cb->tail);
         sem_wait(&mutex);
       }
-      int tail = cb->tail;
       enqueue(cb, pages);
       printf("Client %d has %d pages to print, putting request in Buffer[%d]\n",
-             tid, pages, tail);
+             tid, pages, cb->tail);
       sem_post(&mutex);
       sem_post(&full);
 
@@ -108,6 +108,7 @@ static void *consumer(void *arg) {
     free (arg);
 
     while (1) {
+      sem_trywait(&full);
       sem_wait(&mutex);
       while (cb->length == 0) {
 	    printf("No requests in buffer, Printer %d going to sleep\n", tid);
@@ -119,8 +120,7 @@ static void *consumer(void *arg) {
       int pages = dequeue(cb);
       if (pages < 0) {
         printf("Error: pages to print less than 0\n");
-        continue; // continue or exit?
-        //exit(1);
+        continue;
       }
       printf("Printer %d printing %d pages from Buffer[%d]\n", tid, pages, head);
       sleep(pages);
